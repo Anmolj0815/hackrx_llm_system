@@ -1,6 +1,12 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec, Index # <-- CORRECTED: Import Index directly here
+from pinecone import Pinecone, ServerlessSpec, Index # <-- Confirmed this is how Index should be imported.
+# Also, if you use Python < 3.9, you might need:
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
+#    import pinecone
+# from __future__ import annotations # Added for future compatibility, not strictly needed for this specific NameError
+
 import openai
 from sentence_transformers import SentenceTransformer
 
@@ -14,7 +20,7 @@ PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Check for essential environment variables
-if not PINECONE_API_KEY:
+if not PINECAI_API_KEY:
     raise ValueError("PINECONE_API_KEY not set in .env")
 if not PINECONE_ENVIRONMENT:
     raise ValueError("PINECONE_ENVIRONMENT not set in .env. For ServerlessSpec, this should be a region like 'us-east-1'.")
@@ -68,14 +74,14 @@ def get_pinecone_index() -> Index: # <-- CORRECTED: Use 'Index' directly from to
             )
             print(f"New Pinecone index '{PINECONE_INDEX_NAME}' created.")
         
-        # Return the Index object from the client instance
         return pc.Index(PINECONE_INDEX_NAME) 
     except Exception as e:
         print(f"Failed to get/create Pinecone index '{PINECONE_INDEX_NAME}': {e}")
         raise
 
 # --- Pinecone Data Operations (Type hints updated to Index directly) ---
-def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str, namespace: str = None): # <-- CORRECTED: Use 'Index' directly
+# All uses of pinecone.Index in type hints should now just be Index
+def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str, namespace: str = None):
     """
     Generates embeddings for text chunks and upserts them to Pinecone.
     Each chunk gets a unique ID and metadata linking it to the document.
@@ -106,7 +112,7 @@ def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str,
     else:
         print(f"No valid chunks to upsert for document {document_id}.")
 
-def query_pinecone(index: Index, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]: # <-- CORRECTED: Use 'Index' directly
+def query_pinecone(index: Index, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]:
     """
     Queries Pinecone with an embedding of the query text and returns
     the most relevant chunks' text content.
@@ -130,7 +136,7 @@ def query_pinecone(index: Index, query_text: str, top_k: int = 5, namespace: str
         print(f"Error querying Pinecone: {e}")
         raise
 
-def delete_document_vectors(index: Index, document_id: str, namespace: str = None): # <-- CORRECTED: Use 'Index' directly
+def delete_document_vectors(index: Index, document_id: str, namespace: str = None):
     """Deletes all vectors associated with a specific document_id."""
     try:
         index.delete(filter={"document_id": document_id}, namespace=namespace)
