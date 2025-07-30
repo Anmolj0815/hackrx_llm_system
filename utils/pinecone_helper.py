@@ -4,7 +4,7 @@ from pinecone import Pinecone, ServerlessSpec # <-- Only import Pinecone class a
 # Import Index for type hinting purposes, if it's still causing trouble from top-level
 # If this line causes an error: "cannot import name 'Index' from 'pinecone.data'"
 # then delete it and rely on string literal type hints for everything.
-from pinecone.data import Index # <-- Attempt to import Index from its specific submodule for type hinting
+from pinecone import Index # <-- Attempt to import Index from its specific submodule for type hinting
 
 import openai
 from sentence_transformers import SentenceTransformer
