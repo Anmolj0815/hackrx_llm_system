@@ -1,6 +1,6 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec, Index # Import Pinecone class, ServerlessSpec, and Index
+from pinecone.data import Pinecone, ServerlessSpec, Index # Import Pinecone class, ServerlessSpec, and Index
 import openai
 from sentence_transformers import SentenceTransformer
 
