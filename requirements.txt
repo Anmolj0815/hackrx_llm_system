@@ -3,9 +3,6 @@ uvicorn
 python-dotenv
 pypdf
 openai
-pinecone          
+pinecone
 requests
-# Optional: Add specific OCR library if needed
-# google-cloud-vision
-# Optional: For better handling of docx
-# python-docx
+sentence-transformers  # <-- ADD THIS LINE
