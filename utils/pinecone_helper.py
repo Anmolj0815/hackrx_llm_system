@@ -1,12 +1,9 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec # <-- Only import Pinecone class and ServerlessSpec
-# from pinecone import Index # Removed
-# from pinecone.data import Index # Removed as it was also causing issues
-
+from pinecone import Pinecone, ServerlessSpec
 import openai
 from sentence_transformers import SentenceTransformer
-from typing import Any # <-- NEW: Import Any for flexible type hinting
+from typing import Any
 
 # Load environment variables from .env file
 load_dotenv()
@@ -54,8 +51,8 @@ def initialize_pinecone_client():
             print(f"Error creating Pinecone client instance: {e}")
             raise
 
-# --- Corrected get_pinecone_index function (Removed 'Index' type hint) ---
-def get_pinecone_index() -> Any: # <-- CORRECTED: Changed type hint to Any
+# --- Corrected get_pinecone_index function ---
+def get_pinecone_index() -> Any:
     """Connects to an existing Pinecone index or creates it if it doesn't exist."""
     initialize_pinecone_client()
 
@@ -64,13 +61,14 @@ def get_pinecone_index() -> Any: # <-- CORRECTED: Changed type hint to Any
 
     try:
         # Check if index exists by listing current indexes.
-        existing_indexes_names = pc.list_indexes().names 
+        # --- CRITICAL CHANGE: Added () to call the .names() method ---
+        existing_indexes_names = pc.list_indexes().names() 
         
         if PINECONE_INDEX_NAME not in existing_indexes_names:
             print(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}...")
             pc.create_index(
                 name=PINECONE_INDEX_NAME,
-                dimension=1024, # Fixed to 1024
+                dimension=1024,
                 metric='cosine',
                 spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT)
             )
@@ -84,7 +82,7 @@ def get_pinecone_index() -> Any: # <-- CORRECTED: Changed type hint to Any
         print(f"Failed to get/create Pinecone index '{PINECONE_INDEX_NAME}': {e}")
         raise
 
-# --- Embedding Generation (No changes needed) ---
+# --- Embedding Generation ---
 def get_embedding(text: str) -> list[float]:
     """Generates an embedding for the given text using SentenceTransformer (BAAI/bge-large-en-v1.5)."""
     if embedding_model is None:
@@ -99,8 +97,8 @@ def get_embedding(text: str) -> list[float]:
         print(f"Error generating embedding with SentenceTransformer: {e}")
         raise ValueError(f"Embedding generation failed: {e}")
 
-# --- Pinecone Data Operations (Type hints updated to Any) ---
-def upsert_chunks_to_pinecone(index: Any, chunks: list[str], document_id: str, namespace: str = None): # <-- CORRECTED: Use 'Any'
+# --- Pinecone Data Operations ---
+def upsert_chunks_to_pinecone(index: Any, chunks: list[str], document_id: str, namespace: str = None):
     """
     Generates embeddings for text chunks and upserts them to Pinecone.
     Each chunk gets a unique ID and metadata linking it to the document.
@@ -131,7 +129,7 @@ def upsert_chunks_to_pinecone(index: Any, chunks: list[str], document_id: str, n
     else:
         print(f"No valid chunks to upsert for document {document_id}.")
 
-def query_pinecone(index: Any, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]: # <-- CORRECTED: Use 'Any'
+def query_pinecone(index: Any, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]:
     """
     Queries Pinecone with an embedding of the query text and returns
     the most relevant chunks' text content.
@@ -155,7 +153,7 @@ def query_pinecone(index: Any, query_text: str, top_k: int = 5, namespace: str =
         print(f"Error querying Pinecone: {e}")
         raise
 
-def delete_document_vectors(index: Any, document_id: str, namespace: str = None): # <-- CORRECTED: Use 'Any'
+def delete_document_vectors(index: Any, document_id: str, namespace: str = None):
     """Deletes all vectors associated with a specific document_id."""
     try:
         index.delete(filter={"document_id": document_id}, namespace=namespace)
