@@ -1,9 +1,6 @@
 import os
 from dotenv import load_dotenv
-from pinecone import init, Index, ServerlessSpec # <-- CORRECTED: Index and ServerlessSpec are often back at the top level
-# If ServerlessSpec is still not found, check the Pinecone client's GitHub for exact usage.
-# Sometimes, for free tier, you just use `init` and the `environment` parameter handles the spec implicitly.
-
+import pinecone # <-- Import the whole module
 import openai
 
 # Load environment variables from .env file
@@ -11,7 +8,6 @@ load_dotenv()
 
 # --- Configuration from Environment Variables ---
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-# Assuming PINECONE_ENVIRONMENT now holds the specific region name for ServerlessSpec
 PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -37,50 +33,44 @@ def initialize_pinecone_once():
     global pinecone_initialized
     if not pinecone_initialized:
         try:
-            # `init` is typically enough, and the `environment` parameter helps
-            init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
+            # Use pinecone.init()
+            pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
             pinecone_initialized = True
             print(f"Pinecone initialized successfully for environment: {PINECONE_ENVIRONMENT}")
         except Exception as e:
             print(f"Error initializing Pinecone: {e}")
             raise
 
-def get_pinecone_index() -> Index:
+def get_pinecone_index() -> pinecone.Index: # Type hint also uses pinecone.Index
     """Connects to an existing Pinecone index or creates it if it doesn't exist."""
     initialize_pinecone_once() # Ensure Pinecone is initialized
 
     try:
-        # After `init`, Pinecone's top-level `pinecone.list_indexes()` is used.
-        # The `Index` object is directly from the top-level import now.
-        
-        # Access the top-level Pinecone client instance for operations like list_indexes
-        import pinecone as pinecone_client_instance 
-        
-        if PINECONE_INDEX_NAME not in pinecone_client_instance.list_indexes():
+        if PINECONE_INDEX_NAME not in pinecone.list_indexes():
             print(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}...")
             
-            # For serverless indexes, 'cloud' and 'region' are required.
+            # Use pinecone.ServerlessSpec or pinecone.PodSpec as needed.
+            # ServerlessSpec is common for new free tiers.
             # Assuming 'aws' as the cloud, change if your environment is GCP/Azure.
-            # PINECONE_ENVIRONMENT variable should contain the region (e.g., 'us-west-2').
-            pinecone_client_instance.create_index( # Call create_index on the client instance
+            pinecone.create_index(
                 name=PINECONE_INDEX_NAME,
                 dimension=1536, # Dimension for text-embedding-ada-002
                 metric='cosine',
-                spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT) # Use the imported ServerlessSpec
+                spec=pinecone.ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT)
             )
             print(f"New Pinecone index '{PINECONE_INDEX_NAME}' created.")
         
-        # Return the Index object, also imported from the top level
-        return Index(PINECONE_INDEX_NAME) # Access Index class directly
+        # Access the Index class directly as an attribute of the imported pinecone module
+        return pinecone.Index(PINECONE_INDEX_NAME) 
     except Exception as e:
         print(f"Failed to get/create Pinecone index '{PINECONE_INDEX_NAME}': {e}")
         raise
 
-# --- OpenAI Embedding Generation ---
+# --- OpenAI Embedding Generation (No changes needed) ---
 def get_embedding(text: str) -> list[float]:
     """Generates an embedding for the given text using OpenAI's text-embedding-ada-002."""
-    if not text.strip(): # Handle empty or whitespace-only text
-        return [0.0] * 1536 # Return a zero vector or handle as error
+    if not text.strip():
+        return [0.0] * 1536
 
     try:
         response = openai.embeddings.create(
@@ -95,15 +85,15 @@ def get_embedding(text: str) -> list[float]:
         print(f"An unexpected error occurred during embedding generation: {e}")
         raise ValueError(f"Embedding generation failed: {e}")
 
-# --- Pinecone Data Operations ---
-def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str, namespace: str = None):
+# --- Pinecone Data Operations (No changes needed in logic, just type hints if they use `Index` explicitly) ---
+def upsert_chunks_to_pinecone(index: pinecone.Index, chunks: list[str], document_id: str, namespace: str = None): # Type hint uses pinecone.Index
     """
     Generates embeddings for text chunks and upserts them to Pinecone.
     Each chunk gets a unique ID and metadata linking it to the document.
     """
     vectors_to_upsert = []
     for i, chunk in enumerate(chunks):
-        if not chunk.strip(): # Skip empty chunks
+        if not chunk.strip():
             continue
         try:
             embedding = get_embedding(chunk)
@@ -111,7 +101,7 @@ def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str,
             vectors_to_upsert.append({
                 "id": vector_id,
                 "values": embedding,
-                "metadata": {"text": chunk, "document_id": document_id} # Store original text in metadata
+                "metadata": {"text": chunk, "document_id": document_id}
             })
         except ValueError as e:
             print(f"Skipping chunk {i} due to embedding error: {e}")
@@ -127,7 +117,7 @@ def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str,
     else:
         print(f"No valid chunks to upsert for document {document_id}.")
 
-def query_pinecone(index: Index, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]:
+def query_pinecone(index: pinecone.Index, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]: # Type hint uses pinecone.Index
     """
     Queries Pinecone with an embedding of the query text and returns
     the most relevant chunks' text content.
@@ -140,23 +130,20 @@ def query_pinecone(index: Index, query_text: str, top_k: int = 5, namespace: str
         results = index.query(
             vector=query_embedding,
             top_k=top_k,
-            include_metadata=True, # Ensure metadata (including 'text') is returned
+            include_metadata=True,
             namespace=namespace
         )
-        # Return the 'text' content from the metadata of the top_k matches
         return [match.metadata['text'] for match in results.matches if 'text' in match.metadata]
-    except ValueError as e: # Catch error from get_embedding
+    except ValueError as e:
         print(f"Query embedding failed: {e}")
         return []
     except Exception as e:
         print(f"Error querying Pinecone: {e}")
         raise
 
-# Optional: Function to delete all vectors from a specific document_id (useful for cleanup/testing)
-def delete_document_vectors(index: Index, document_id: str, namespace: str = None):
+def delete_document_vectors(index: pinecone.Index, document_id: str, namespace: str = None): # Type hint uses pinecone.Index
     """Deletes all vectors associated with a specific document_id."""
     try:
-        # Pinecone's delete operation can filter by metadata
         index.delete(filter={"document_id": document_id}, namespace=namespace)
         print(f"Deleted vectors for document_id: {document_id} from Pinecone.")
     except Exception as e:
