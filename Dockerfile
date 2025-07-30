@@ -1,5 +1,5 @@
 # Use a stable, lightweight Python base image
-FROM python:3.12-slim-buster
+FROM python:3.11-slim-buster
 
 # Set the working directory inside the container
 # This is where your code will live. It must match your git repo's root structure.
