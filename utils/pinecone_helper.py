@@ -1,12 +1,6 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec, Index # <-- Confirmed this is how Index should be imported.
-# Also, if you use Python < 3.9, you might need:
-# from typing import TYPE_CHECKING
-# if TYPE_CHECKING:
-#    import pinecone
-# from __future__ import annotations # Added for future compatibility, not strictly needed for this specific NameError
-
+from pinecone import Pinecone, ServerlessSpec, Index # Import Pinecone class, ServerlessSpec, and Index directly
 import openai
 from sentence_transformers import SentenceTransformer
 
@@ -15,12 +9,12 @@ load_dotenv()
 
 # --- Configuration from Environment Variables ---
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT") # e.g., 'us-east-1'
 PINECONE_INDEX_NAME = os.getenv("PINECONE_INDEX_NAME")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Check for essential environment variables
-if not PINECAI_API_KEY:
+if not PINECONE_API_KEY:
     raise ValueError("PINECONE_API_KEY not set in .env")
 if not PINECONE_ENVIRONMENT:
     raise ValueError("PINECONE_ENVIRONMENT not set in .env. For ServerlessSpec, this should be a region like 'us-east-1'.")
@@ -33,13 +27,15 @@ if not OPENAI_API_KEY:
 openai.api_key = OPENAI_API_KEY
 
 # --- Initialize the 1024-dimension Sentence Transformer model globally ---
+embedding_model = None # Initialize to None
 try:
     print("Loading SentenceTransformer model 'BAAI/bge-large-en-v1.5'...")
     embedding_model = SentenceTransformer('BAAI/bge-large-en-v1.5')
     print("SentenceTransformer model 'BAAI/bge-large-en-v1.5' loaded successfully.")
 except Exception as e:
     print(f"CRITICAL ERROR: Failed to load SentenceTransformer model: {e}")
-    embedding_model = None
+    # Application will likely fail if embedding model cannot be loaded.
+    # Re-raise or handle this critical error if desired.
 
 # --- Pinecone Client Instance (GLOBAL) ---
 pc = None
@@ -55,32 +51,54 @@ def initialize_pinecone_client():
             print(f"Error creating Pinecone client instance: {e}")
             raise
 
-# --- Corrected get_pinecone_index function ---
-def get_pinecone_index() -> Index: # <-- CORRECTED: Use 'Index' directly from top-level import
+def get_pinecone_index() -> Index: # Type hint uses the directly imported 'Index'
     """Connects to an existing Pinecone index or creates it if it doesn't exist."""
     initialize_pinecone_client()
 
-    if pc is None:
+    if pc is None: # This check should pass if initialize_pinecone_client doesn't raise
         raise RuntimeError("Pinecone client instance is not initialized.")
 
     try:
-        if PINECONE_INDEX_NAME not in pc.list_indexes().names:
+        # Check if index exists - use .names property for reliability
+        existing_indexes_names = pc.list_indexes().names # Access .names property
+        
+        if PINECONE_INDEX_NAME not in existing_indexes_names:
             print(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}...")
+            # Use the instance to create the index, specifying ServerlessSpec
+            # 'cloud' should match your Pinecone environment (e.g., 'aws', 'gcp', 'azure')
             pc.create_index(
                 name=PINECONE_INDEX_NAME,
-                dimension=1024, # Fixed to 1024
+                dimension=1024, # Fixed to 1024 to match BGE model
                 metric='cosine',
-                spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT)
+                spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT) # Use ServerlessSpec from import
             )
             print(f"New Pinecone index '{PINECONE_INDEX_NAME}' created.")
+        else:
+            print(f"Pinecone index '{PINECONE_INDEX_NAME}' already exists.")
         
+        # Return the Index object via the client instance
         return pc.Index(PINECONE_INDEX_NAME) 
     except Exception as e:
         print(f"Failed to get/create Pinecone index '{PINECONE_INDEX_NAME}': {e}")
         raise
 
-# --- Pinecone Data Operations (Type hints updated to Index directly) ---
-# All uses of pinecone.Index in type hints should now just be Index
+# --- Embedding Generation ---
+def get_embedding(text: str) -> list[float]:
+    """Generates an embedding for the given text using SentenceTransformer (BAAI/bge-large-en-v1.5)."""
+    if embedding_model is None: # Check if model loaded successfully at startup
+        raise RuntimeError("Embedding model is not initialized. Cannot generate embeddings.")
+    if not text.strip():
+        # Return a zero vector of the correct dimension (1024 for BGE-Large)
+        return [0.0] * 1024
+
+    try:
+        embedding_np = embedding_model.encode(text, normalize_embeddings=True)
+        return embedding_np.tolist()
+    except Exception as e:
+        print(f"Error generating embedding with SentenceTransformer: {e}")
+        raise ValueError(f"Embedding generation failed: {e}")
+
+# --- Pinecone Data Operations ---
 def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str, namespace: str = None):
     """
     Generates embeddings for text chunks and upserts them to Pinecone.
