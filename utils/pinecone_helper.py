@@ -1,8 +1,16 @@
 import os
 from dotenv import load_dotenv
-from pinecone import Pinecone, ServerlessSpec # <-- CORRECTED: Index is NOT imported here
+from pinecone import Pinecone, ServerlessSpec # <-- Only import Pinecone class and ServerlessSpec
+# Import Index for type hinting purposes, if it's still causing trouble from top-level
+# If this line causes an error: "cannot import name 'Index' from 'pinecone.data'"
+# then delete it and rely on string literal type hints for everything.
+from pinecone.data import Index # <-- Attempt to import Index from its specific submodule for type hinting
+
 import openai
 from sentence_transformers import SentenceTransformer
+
+# Optional: Add for future type hinting compatibility, may not fix this specific issue
+# from __future__ import annotations 
 
 # Load environment variables from .env file
 load_dotenv()
@@ -34,7 +42,7 @@ try:
     print("SentenceTransformer model 'BAAI/bge-large-en-v1.5' loaded successfully.")
 except Exception as e:
     print(f"CRITICAL ERROR: Failed to load SentenceTransformer model: {e}")
-    # Consider raising a more specific error or handling here if model cannot be loaded.
+    embedding_model = None
 
 # --- Pinecone Client Instance (GLOBAL) ---
 pc = None
@@ -50,8 +58,8 @@ def initialize_pinecone_client():
             print(f"Error creating Pinecone client instance: {e}")
             raise
 
-# --- Corrected get_pinecone_index function (Type hint using string literal) ---
-def get_pinecone_index() -> 'pinecone.Index': # <-- CORRECTED: Use string literal for type hint
+# --- Corrected get_pinecone_index function (Type hint using directly imported 'Index' or string) ---
+def get_pinecone_index() -> Index: # If the 'from pinecone.data import Index' fails, change to -> 'pinecone.data.Index' or -> 'Index'
     """Connects to an existing Pinecone index or creates it if it doesn't exist."""
     initialize_pinecone_client()
 
@@ -59,7 +67,8 @@ def get_pinecone_index() -> 'pinecone.Index': # <-- CORRECTED: Use string litera
         raise RuntimeError("Pinecone client instance is not initialized.")
 
     try:
-        # Check if index exists - use .names property for reliability
+        # Use the instance to list indexes
+        # This part has been consistently working in tests for recent client versions
         existing_indexes_names = pc.list_indexes().names
         
         if PINECONE_INDEX_NAME not in existing_indexes_names:
@@ -80,8 +89,10 @@ def get_pinecone_index() -> 'pinecone.Index': # <-- CORRECTED: Use string litera
         print(f"Failed to get/create Pinecone index '{PINECONE_INDEX_NAME}': {e}")
         raise
 
-# --- Pinecone Data Operations (Type hints updated to string literal) ---
-def upsert_chunks_to_pinecone(index: 'pinecone.Index', chunks: list[str], document_id: str, namespace: str = None): # <-- CORRECTED: Use string literal
+# --- Pinecone Data Operations (Type hints updated) ---
+# All uses of Index in type hints are now direct 'Index' (from pinecone.data import Index)
+# If 'from pinecone.data import Index' fails, revert to string literal: 'pinecone.data.Index'
+def upsert_chunks_to_pinecone(index: Index, chunks: list[str], document_id: str, namespace: str = None):
     """
     Generates embeddings for text chunks and upserts them to Pinecone.
     Each chunk gets a unique ID and metadata linking it to the document.
@@ -112,7 +123,7 @@ def upsert_chunks_to_pinecone(index: 'pinecone.Index', chunks: list[str], docume
     else:
         print(f"No valid chunks to upsert for document {document_id}.")
 
-def query_pinecone(index: 'pinecone.Index', query_text: str, top_k: int = 5, namespace: str = None) -> list[str]: # <-- CORRECTED: Use string literal
+def query_pinecone(index: Index, query_text: str, top_k: int = 5, namespace: str = None) -> list[str]:
     """
     Queries Pinecone with an embedding of the query text and returns
     the most relevant chunks' text content.
@@ -136,7 +147,7 @@ def query_pinecone(index: 'pinecone.Index', query_text: str, top_k: int = 5, nam
         print(f"Error querying Pinecone: {e}")
         raise
 
-def delete_document_vectors(index: 'pinecone.Index', document_id: str, namespace: str = None): # <-- CORRECTED: Use string literal
+def delete_document_vectors(index: Index, document_id: str, namespace: str = None):
     """Deletes all vectors associated with a specific document_id."""
     try:
         index.delete(filter={"document_id": document_id}, namespace=namespace)
