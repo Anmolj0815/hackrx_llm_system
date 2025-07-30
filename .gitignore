@@ -1,0 +1,14 @@
+# Environment variables
+.env
+
+# Python virtual environment
+venv/
+.venv/
+*.pyc
+__pycache__/
+
+# IDE-specific files (e.g., PyCharm)
+.idea/
+
+# Editor swap files
+*~
