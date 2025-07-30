@@ -1,8 +1,12 @@
-fastapi
-uvicorn
-python-dotenv
-pypdf
-openai
-pinecone
-requests
-sentence-transformers  # <-- ADD THIS LINE
+fastapi==0.111.0
+uvicorn==0.30.1
+python-dotenv==1.0.1
+pypdf==4.2.0
+openai==1.35.1
+pinecone==3.2.2  # Ensure this is 'pinecone', NOT 'pinecone-client'
+requests==2.32.3
+sentence-transformers==2.7.0  # Required for BGE model
+# Optional: Add specific OCR library if needed
+# google-cloud-vision
+# Optional: For better handling of docx
+# python-docx
