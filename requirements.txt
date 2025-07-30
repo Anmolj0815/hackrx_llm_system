@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-dotenv
+pypdf
+openai
+pinecone-client
+requests
+# Optional: Add specific OCR library if needed (e.g., google-cloud-vision if using GCP Vision AI)
+# google-cloud-vision
+# Optional: For better handling of docx, if required by contest beyond PDF/basic email
+# python-docx
