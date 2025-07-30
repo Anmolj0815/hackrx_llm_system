@@ -3,9 +3,9 @@ uvicorn==0.30.1
 python-dotenv==1.0.1
 pypdf==4.2.0
 openai==1.35.1
-pinecone==3.2.2  # Ensure this is 'pinecone', NOT 'pinecone-client'
+pinecone>=4.0.0  # <--- CHANGE THIS LINE! This will install the latest compatible version (e.g., 4.x.x)
 requests==2.32.3
-sentence-transformers==2.7.0  # Required for BGE model
+sentence-transformers==2.7.0
 # Optional: Add specific OCR library if needed
 # google-cloud-vision
 # Optional: For better handling of docx
