@@ -3,9 +3,9 @@ uvicorn
 python-dotenv
 pypdf
 openai
-pinecone-client
+pinecone          
 requests
-# Optional: Add specific OCR library if needed (e.g., google-cloud-vision if using GCP Vision AI)
+# Optional: Add specific OCR library if needed
 # google-cloud-vision
-# Optional: For better handling of docx, if required by contest beyond PDF/basic email
+# Optional: For better handling of docx
 # python-docx
