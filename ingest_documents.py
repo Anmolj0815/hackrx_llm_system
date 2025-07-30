@@ -25,9 +25,11 @@ load_dotenv()
 STATIC_DOCUMENT_URLS = [
     "https://hackrx.blob.core.windows.net/assets/policy.pdf?sv=2023-01-03&st=2025-07-04T09%3A11%3A24Z&se=2027-07-05T09%3A11%3A00Z&sr=b&sp=r&sig=N4a9OU0w0QXO6AOIBiu4bpl7AXvEZogeT%2FjUHNO7HzQ%3D",
     # Add your other policy document URLs here:
-    # "https://your-storage-account.blob.core.windows.net/your-container/policy2.pdf",
-    # "https://your-storage-account.blob.core.windows.net/your-container/contract_terms.docx", # Example for .docx if you implement
-    # "https://your-storage-account.blob.core.windows.net/your-container/email_policy.eml",   # Example for .eml if you implement
+     "https://www.hackrx.in/policies/BAJHLIP23020V012223.pdf",
+     "https://www.hackrx.in/policies/CHOTGDP23004V012223.pdf", # Example for .docx if you implement
+     "https://www.hackrx.in/policies/EDLHLGA23009V012223.pdf",
+      "https://www.hackrx.in/policies/HDFHLIP23024V072223.pdf",
+    "https://www.hackrx.in/policies/ICIHLIP22012V012223.pdf",# Example for .eml if you implement
 ]
 
 # Using a consistent namespace for static documents can be helpful for management
