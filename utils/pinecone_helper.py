@@ -1,7 +1,9 @@
 import os
 from dotenv import load_dotenv
-from pinecone import init # 'init' is still imported directly from 'pinecone'
-from pinecone.data import Index, ServerlessSpec # Corrected import for Index and ServerlessSpec
+from pinecone import init, Index, ServerlessSpec # <-- CORRECTED: Index and ServerlessSpec are often back at the top level
+# If ServerlessSpec is still not found, check the Pinecone client's GitHub for exact usage.
+# Sometimes, for free tier, you just use `init` and the `environment` parameter handles the spec implicitly.
+
 import openai
 
 # Load environment variables from .env file
@@ -35,6 +37,7 @@ def initialize_pinecone_once():
     global pinecone_initialized
     if not pinecone_initialized:
         try:
+            # `init` is typically enough, and the `environment` parameter helps
             init(api_key=PINECONE_API_KEY, environment=PINECONE_ENVIRONMENT)
             pinecone_initialized = True
             print(f"Pinecone initialized successfully for environment: {PINECONE_ENVIRONMENT}")
@@ -47,25 +50,28 @@ def get_pinecone_index() -> Index:
     initialize_pinecone_once() # Ensure Pinecone is initialized
 
     try:
-        if PINECONE_INDEX_NAME not in pinecone.list_indexes():
+        # After `init`, Pinecone's top-level `pinecone.list_indexes()` is used.
+        # The `Index` object is directly from the top-level import now.
+        
+        # Access the top-level Pinecone client instance for operations like list_indexes
+        import pinecone as pinecone_client_instance 
+        
+        if PINECONE_INDEX_NAME not in pinecone_client_instance.list_indexes():
             print(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}...")
             
-            # For Pinecone's free tier (Starter) and most new accounts, ServerlessSpec is the default.
-            # You need to specify the cloud and region.
-            # Common regions for serverless: 'us-west-2' (AWS Oregon), 'us-east-1' (AWS N. Virginia), etc.
-            # 'cloud' can be 'aws', 'gcp', or 'azure'. Check your Pinecone dashboard to confirm your environment's cloud provider.
-            
-            # Assuming PINECONE_ENVIRONMENT variable in .env holds the region (e.g., 'us-west-2')
-            # and that it's an AWS-based serverless index (most common default for free tier).
-            # If your Pinecone environment is GCP, change 'aws' to 'gcp'.
-            pinecone.create_index(
+            # For serverless indexes, 'cloud' and 'region' are required.
+            # Assuming 'aws' as the cloud, change if your environment is GCP/Azure.
+            # PINECONE_ENVIRONMENT variable should contain the region (e.g., 'us-west-2').
+            pinecone_client_instance.create_index( # Call create_index on the client instance
                 name=PINECONE_INDEX_NAME,
                 dimension=1536, # Dimension for text-embedding-ada-002
                 metric='cosine',
-                spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT)
+                spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT) # Use the imported ServerlessSpec
             )
             print(f"New Pinecone index '{PINECONE_INDEX_NAME}' created.")
-        return pinecone.Index(PINECONE_INDEX_NAME)
+        
+        # Return the Index object, also imported from the top level
+        return Index(PINECONE_INDEX_NAME) # Access Index class directly
     except Exception as e:
         print(f"Failed to get/create Pinecone index '{PINECONE_INDEX_NAME}': {e}")
         raise
