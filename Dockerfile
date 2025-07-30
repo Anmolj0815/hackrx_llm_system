@@ -1,13 +1,9 @@
-# Use a stable, lightweight Python base image
 FROM python:3.11-slim-buster
-
-# Set the working directory inside the container
 WORKDIR /app
-
-# Copy requirements.txt first and install Python dependencies
 COPY requirements.txt .
 
 # Ensure old pinecone-client is removed, then install all dependencies
+# This '|| true' makes sure the build doesn't fail if pinecone-client isn't found.
 RUN pip uninstall -y pinecone-client || true && \
     pip install --no-cache-dir -r requirements.txt
 
@@ -23,5 +19,4 @@ EXPOSE 8000
 
 # Command to run your FastAPI application using Uvicorn.
 # Uvicorn will listen on port 8000 inside the container.
-# Render's system will then route external traffic to this EXPOSEd port.
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
