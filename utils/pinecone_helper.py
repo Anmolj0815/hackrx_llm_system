@@ -30,9 +30,9 @@ openai.api_key = OPENAI_API_KEY
 # --- Initialize the 1024-dimension Sentence Transformer model globally ---
 embedding_model = None
 try:
-    print("Loading SentenceTransformer model 'BAAI/bge-large-en-v1.5'...")
-    embedding_model = SentenceTransformer('BAAI/bge-large-en-v1.5')
-    print("SentenceTransformer model 'BAAI/bge-large-en-v1.5' loaded successfully.")
+    print("Loading SentenceTransformer model 'all-MiniLM-L6-v2'...")
+    embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+    print("SentenceTransformer model 'all-MiniLM-L6-v2' loaded successfully.")
 except Exception as e:
     print(f"CRITICAL ERROR: Failed to load SentenceTransformer model: {e}")
     embedding_model = None
@@ -68,7 +68,7 @@ def get_pinecone_index() -> Any:
             print(f"Creating new Pinecone index: {PINECONE_INDEX_NAME}...")
             pc.create_index(
                 name=PINECONE_INDEX_NAME,
-                dimension=1024,
+                dimension=384,
                 metric='cosine',
                 spec=ServerlessSpec(cloud='aws', region=PINECONE_ENVIRONMENT)
             )
@@ -88,7 +88,7 @@ def get_embedding(text: str) -> list[float]:
     if embedding_model is None:
         raise RuntimeError("Embedding model is not initialized. Cannot generate embeddings.")
     if not text.strip():
-        return [0.0] * 1024
+        return [0.0] * 384
 
     try:
         embedding_np = embedding_model.encode(text, normalize_embeddings=True)
