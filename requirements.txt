@@ -6,6 +6,7 @@ openai==1.35.1
 pinecone>=4.0.0  # <--- CHANGE THIS LINE! This will install the latest compatible version (e.g., 4.x.x)
 requests==2.32.3
 sentence-transformers==2.7.0
+requests # Just 'requests' is fine
 # Optional: Add specific OCR library if needed
 # google-cloud-vision
 # Optional: For better handling of docx
